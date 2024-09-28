@@ -16,26 +16,34 @@ const messageModel_1 = __importDefault(require("../model/messageModel"));
 const chatRoomModel_1 = __importDefault(require("../model/chatRoomModel"));
 exports.default = {
     saveMessage: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        const { chatRoomId, senderId, text } = req.body;
-        const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatRoomId });
-        const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatRoomId }, {
-            lastMessage: text,
-            lastMessageDate: new Date().toString(),
-            lastMessageVisibleTo: chatroom === null || chatroom === void 0 ? void 0 : chatroom.members,
-        });
-        const chatRoomMembers = updatedChatRoom
-            ? updatedChatRoom.members
-            : ["", ""];
-        const message = yield messageModel_1.default.create({
-            chatRoomId,
-            senderId,
-            text,
-            visibleTo: chatRoomMembers,
-        });
-        res.status(200).json({
-            status: "success",
-            message: "data is stored",
-        });
+        try {
+            const { chatRoomId, senderId, text } = req.body;
+            const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatRoomId });
+            const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatRoomId }, {
+                lastMessage: text,
+                lastMessageDate: new Date().toString(),
+                lastMessageVisibleTo: chatroom === null || chatroom === void 0 ? void 0 : chatroom.members,
+            });
+            const chatRoomMembers = updatedChatRoom
+                ? updatedChatRoom.members
+                : ["", ""];
+            const message = yield messageModel_1.default.create({
+                chatRoomId,
+                senderId,
+                text,
+                visibleTo: chatRoomMembers,
+            });
+            res.status(200).json({
+                status: true,
+                message: message,
+            });
+        }
+        catch (err) {
+            res.status(500).json({
+                status: false,
+                message: null,
+            });
+        }
     }),
     getRoomMessages: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { roomId } = req.params;
@@ -78,21 +86,58 @@ exports.default = {
             });
         }
     }),
-    deleteSelectedMessages: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            const { ids } = req.params;
-            const messagesIdArray = ids.split("--");
-            messagesIdArray.forEach((messageId) => __awaiter(void 0, void 0, void 0, function* () { return yield messageModel_1.default.findByIdAndDelete(messageId); }));
-            res.status(200).json({
-                status: true,
-                message: "messages deleted successfully",
-            });
-        }
-        catch (err) {
-            res.status(500).json({
-                status: false,
-                message: "failed to delete selected messages",
-            });
-        }
-    }),
+    deleteForMe: function (req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { messages, userId, chatroomId } = req.params;
+                const messagesId = messages
+                    .split("__")
+                    .map((message) => message.split("--")[0]);
+                messagesId.forEach((messageId) => __awaiter(this, void 0, void 0, function* () {
+                    const message = yield messageModel_1.default.findById(messageId);
+                    const deletedFor = message && message.deletedFor ? message.deletedFor : [];
+                    yield messageModel_1.default.findOneAndUpdate({ _id: messageId }, { deletedFor: [...deletedFor, userId] });
+                }));
+                const updatedMessages = yield messageModel_1.default.find({ chatRoomId: chatroomId });
+                res.status(200).json({
+                    status: true,
+                    data: updatedMessages,
+                });
+            }
+            catch (err) {
+                res.status(500).json({
+                    status: false,
+                    data: [],
+                });
+            }
+        });
+    },
+    deleteForEveryOne: function (req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { messages, userId, chatroomId } = req.params;
+                console.log(messages);
+                const messagesId = messages
+                    .split("__")
+                    .map((message) => message.split("--")[0]);
+                messagesId.forEach((messageId) => __awaiter(this, void 0, void 0, function* () {
+                    const message = yield messageModel_1.default.findOne({ _id: messageId });
+                    const updatedMessage = yield messageModel_1.default.findOneAndUpdate({ _id: messageId }, {
+                        deleteForEveryOne: 1,
+                    });
+                }));
+                const updatedMessages = yield messageModel_1.default.find({ chatRoomId: chatroomId });
+                res.status(200).json({
+                    status: true,
+                    message: updatedMessages,
+                });
+            }
+            catch (err) {
+                res.status(500).json({
+                    status: false,
+                    message: [],
+                });
+            }
+        });
+    },
 };

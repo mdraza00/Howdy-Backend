@@ -4,31 +4,37 @@ import ChatRoom from "../model/chatRoomModel";
 
 export default {
   saveMessage: async (req: Request, res: Response) => {
-    const { chatRoomId, senderId, text } = req.body;
+    try {
+      const { chatRoomId, senderId, text } = req.body;
 
-    const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
-    const updatedChatRoom = await ChatRoom.findOneAndUpdate(
-      { _id: chatRoomId },
-      {
-        lastMessage: text,
-        lastMessageDate: new Date().toString(),
-        lastMessageVisibleTo: chatroom?.members,
-      }
-    );
-    const chatRoomMembers = updatedChatRoom
-      ? updatedChatRoom.members
-      : ["", ""];
-    const message = await Message.create({
-      chatRoomId,
-      senderId,
-      text,
-      visibleTo: chatRoomMembers,
-    });
-
-    res.status(200).json({
-      status: "success",
-      message: "data is stored",
-    });
+      const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
+      const updatedChatRoom = await ChatRoom.findOneAndUpdate(
+        { _id: chatRoomId },
+        {
+          lastMessage: text,
+          lastMessageDate: new Date().toString(),
+          lastMessageVisibleTo: chatroom?.members,
+        }
+      );
+      const chatRoomMembers = updatedChatRoom
+        ? updatedChatRoom.members
+        : ["", ""];
+      const message = await Message.create({
+        chatRoomId,
+        senderId,
+        text,
+        visibleTo: chatRoomMembers,
+      });
+      res.status(200).json({
+        status: true,
+        message: message,
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: null,
+      });
+    }
   },
 
   getRoomMessages: async (req: Request, res: Response) => {
@@ -79,21 +85,61 @@ export default {
       });
     }
   },
-  deleteSelectedMessages: async (req: Request, res: Response) => {
+  deleteForMe: async function (req: Request, res: Response) {
     try {
-      const { ids } = req.params;
-      const messagesIdArray = ids.split("--");
-      messagesIdArray.forEach(
-        async (messageId) => await Message.findByIdAndDelete(messageId)
-      );
+      const { messages, userId, chatroomId } = req.params;
+      const messagesId = messages
+        .split("__")
+        .map((message) => message.split("--")[0]);
+
+      messagesId.forEach(async (messageId) => {
+        const message = await Message.findById(messageId);
+        const deletedFor =
+          message && message.deletedFor ? message.deletedFor : [];
+        await Message.findOneAndUpdate(
+          { _id: messageId },
+          { deletedFor: [...deletedFor, userId] }
+        );
+      });
+
+      const updatedMessages = await Message.find({ chatRoomId: chatroomId });
       res.status(200).json({
         status: true,
-        message: "messages deleted successfully",
+        data: updatedMessages,
       });
     } catch (err) {
       res.status(500).json({
         status: false,
-        message: "failed to delete selected messages",
+        data: [],
+      });
+    }
+  },
+  deleteForEveryOne: async function (req: Request, res: Response) {
+    try {
+      const { messages, userId, chatroomId } = req.params;
+      console.log(messages);
+      const messagesId = messages
+        .split("__")
+        .map((message) => message.split("--")[0]);
+
+      messagesId.forEach(async (messageId) => {
+        const message = await Message.findOne({ _id: messageId });
+        const updatedMessage = await Message.findOneAndUpdate(
+          { _id: messageId },
+          {
+            deleteForEveryOne: 1,
+          }
+        );
+      });
+      const updatedMessages = await Message.find({ chatRoomId: chatroomId });
+      res.status(200).json({
+        status: true,
+        message: updatedMessages,
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: [],
       });
     }
   },

@@ -19,8 +19,13 @@ messageRouter.patch(
   messageController.ClearChatRoomMessages
 );
 messageRouter.delete(
-  "/delete/selected-messages/:ids",
+  "/delete-for-me/:userId/:chatroomId/:messages",
   authenticateUser.authUserMiddleware,
-  messageController.deleteSelectedMessages
+  messageController.deleteForMe
+);
+messageRouter.delete(
+  "/delete-for-everyone/:userId/:chatroomId/:messages",
+  authenticateUser.authUserMiddleware,
+  messageController.deleteForEveryOne
 );
 export default messageRouter;

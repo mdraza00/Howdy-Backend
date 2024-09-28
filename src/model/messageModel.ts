@@ -4,13 +4,17 @@ interface iMessage {
   senderId: string;
   text: string;
   visibleTo: string[];
+  deletedFor: string[];
+  deleteForEveryOne: number;
 }
 const messageSchema = new Schema<iMessage>(
   {
     chatRoomId: String,
     senderId: String,
     text: String,
-    visibleTo: Array,
+    visibleTo: [String],
+    deletedFor: [String],
+    deleteForEveryOne: Number,
   },
   { timestamps: true }
 );
