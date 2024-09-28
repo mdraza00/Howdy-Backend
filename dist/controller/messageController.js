@@ -17,7 +17,12 @@ const chatRoomModel_1 = __importDefault(require("../model/chatRoomModel"));
 exports.default = {
     saveMessage: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { chatRoomId, senderId, text } = req.body;
-        const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatRoomId }, { lastMessage: text, lastMessageDate: new Date().toString() });
+        const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatRoomId });
+        const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatRoomId }, {
+            lastMessage: text,
+            lastMessageDate: new Date().toString(),
+            lastMessageVisibleTo: chatroom === null || chatroom === void 0 ? void 0 : chatroom.members,
+        });
         const chatRoomMembers = updatedChatRoom
             ? updatedChatRoom.members
             : ["", ""];
@@ -50,20 +55,26 @@ exports.default = {
     ClearChatRoomMessages: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { chatroomId, userId } = req.body;
         try {
+            const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatroomId });
             const messages = yield messageModel_1.default.find({ chatRoomId: chatroomId });
             messages.forEach((message) => __awaiter(void 0, void 0, void 0, function* () {
                 const visibleTo = message.visibleTo.filter((visibleToMember) => visibleToMember !== userId);
                 yield messageModel_1.default.findByIdAndUpdate(message._id.toString(), { visibleTo });
             }));
+            const updatedMessages = yield messageModel_1.default.find({ chatRoomId: chatroomId });
+            const visibleTo = chatroom === null || chatroom === void 0 ? void 0 : chatroom.lastMessageVisibleTo.filter((visibleToMember) => visibleToMember !== userId);
+            yield chatRoomModel_1.default.findByIdAndUpdate(chatroomId, {
+                lastMessageVisibleTo: visibleTo,
+            });
             res.status(200).json({
                 status: true,
-                message: "messages cleared successfully",
+                data: updatedMessages,
             });
         }
         catch (err) {
             res.status(500).json({
                 status: false,
-                message: "error in clearing messages",
+                data: {},
             });
         }
     }),

@@ -3,11 +3,13 @@ interface iChatRoom {
   members: string[];
   lastMessage: string;
   lastMessageDate: string;
+  lastMessageVisibleTo: string[];
 }
 const chatRoomSchema = new Schema<iChatRoom>(
   {
-    members: Array,
+    members: { type: [String], required: true },
     lastMessage: { type: String, default: "" },
+    lastMessageVisibleTo: { type: [String] },
     lastMessageDate: { type: String, default: "" },
   },
   { timestamps: true }

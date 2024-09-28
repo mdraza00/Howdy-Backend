@@ -5,9 +5,15 @@ import ChatRoom from "../model/chatRoomModel";
 export default {
   saveMessage: async (req: Request, res: Response) => {
     const { chatRoomId, senderId, text } = req.body;
+
+    const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
     const updatedChatRoom = await ChatRoom.findOneAndUpdate(
       { _id: chatRoomId },
-      { lastMessage: text, lastMessageDate: new Date().toString() }
+      {
+        lastMessage: text,
+        lastMessageDate: new Date().toString(),
+        lastMessageVisibleTo: chatroom?.members,
+      }
     );
     const chatRoomMembers = updatedChatRoom
       ? updatedChatRoom.members
@@ -43,7 +49,9 @@ export default {
   ClearChatRoomMessages: async (req: Request, res: Response) => {
     const { chatroomId, userId } = req.body;
     try {
+      const chatroom = await ChatRoom.findOne({ _id: chatroomId });
       const messages = await Message.find({ chatRoomId: chatroomId });
+
       messages.forEach(async (message) => {
         const visibleTo = message.visibleTo.filter(
           (visibleToMember) => visibleToMember !== userId
@@ -51,14 +59,23 @@ export default {
         await Message.findByIdAndUpdate(message._id.toString(), { visibleTo });
       });
 
+      const updatedMessages = await Message.find({ chatRoomId: chatroomId });
+
+      const visibleTo = chatroom?.lastMessageVisibleTo.filter(
+        (visibleToMember) => visibleToMember !== userId
+      );
+      await ChatRoom.findByIdAndUpdate(chatroomId, {
+        lastMessageVisibleTo: visibleTo,
+      });
+
       res.status(200).json({
         status: true,
-        message: "messages cleared successfully",
+        data: updatedMessages,
       });
     } catch (err) {
       res.status(500).json({
         status: false,
-        message: "error in clearing messages",
+        data: {},
       });
     }
   },
