@@ -51,15 +51,20 @@ exports.default = {
             const messages = yield messageModel_1.default.find({ chatRoomId: roomId }).sort({
                 createdAt: 1,
             });
-            const updatedMessages = messages.map((message) => {
-                return message.deleteForEveryOne == 0
-                    ? message
-                    : Object.assign(Object.assign({}, message.toObject()), { text: "message has been deleted" });
-            });
-            yield chatRoomModel_1.default.findOneAndUpdate({ _id: roomId }, {
-                lastMessage: updatedMessages[updatedMessages.length - 1].text,
-            });
-            res.status(200).json({ status: true, data: updatedMessages });
+            if (messages.length === 0) {
+                res.status(200).json({ status: true, data: [] });
+            }
+            else {
+                const updatedMessages = messages.map((message) => {
+                    return message.deleteForEveryOne == 0
+                        ? message
+                        : Object.assign(Object.assign({}, message.toObject()), { text: "message has been deleted" });
+                });
+                yield chatRoomModel_1.default.findOneAndUpdate({ _id: roomId }, {
+                    lastMessage: updatedMessages[updatedMessages.length - 1].text,
+                });
+                res.status(200).json({ status: true, data: updatedMessages });
+            }
         }
         catch (err) {
             res.json(500).json({
@@ -104,22 +109,19 @@ exports.default = {
                 messagesId.forEach((messageId) => __awaiter(this, void 0, void 0, function* () {
                     const message = yield messageModel_1.default.findById(messageId);
                     const deletedFor = message && message.deletedFor ? message.deletedFor : [];
-                    yield messageModel_1.default.findOneAndUpdate({ _id: messageId }, { deletedFor: [...deletedFor, userId] });
+                    const visibleTo = message &&
+                        message.visibleTo.filter((visibleToId) => visibleToId != userId);
+                    yield messageModel_1.default.findOneAndUpdate({ _id: messageId }, { deletedFor: [...deletedFor, userId], visibleTo });
                 }));
-                const updatedMessages = yield messageModel_1.default.find({
-                    chatRoomId: chatroomId,
-                }).sort({
-                    createdAt: 1,
-                });
                 res.status(200).json({
                     status: true,
-                    data: updatedMessages,
+                    data: "messages deleted for you successfully",
                 });
             }
             catch (err) {
                 res.status(500).json({
                     status: false,
-                    data: [],
+                    data: "error in deleted messages for you",
                 });
             }
         });

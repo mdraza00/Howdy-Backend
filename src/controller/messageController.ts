@@ -43,21 +43,24 @@ export default {
       const messages = await Message.find({ chatRoomId: roomId }).sort({
         createdAt: 1,
       });
+      if (messages.length === 0) {
+        res.status(200).json({ status: true, data: [] });
+      } else {
+        const updatedMessages = messages.map((message) => {
+          return message.deleteForEveryOne == 0
+            ? message
+            : { ...message.toObject(), text: "message has been deleted" };
+        });
 
-      const updatedMessages = messages.map((message) => {
-        return message.deleteForEveryOne == 0
-          ? message
-          : { ...message.toObject(), text: "message has been deleted" };
-      });
+        await ChatRoom.findOneAndUpdate(
+          { _id: roomId },
+          {
+            lastMessage: updatedMessages[updatedMessages.length - 1].text,
+          }
+        );
 
-      await ChatRoom.findOneAndUpdate(
-        { _id: roomId },
-        {
-          lastMessage: updatedMessages[updatedMessages.length - 1].text,
-        }
-      );
-
-      res.status(200).json({ status: true, data: updatedMessages });
+        res.status(200).json({ status: true, data: updatedMessages });
+      }
     } catch (err) {
       res.json(500).json({
         status: false,
@@ -110,25 +113,23 @@ export default {
         const message = await Message.findById(messageId);
         const deletedFor =
           message && message.deletedFor ? message.deletedFor : [];
+        const visibleTo =
+          message &&
+          message.visibleTo.filter((visibleToId) => visibleToId != userId);
         await Message.findOneAndUpdate(
           { _id: messageId },
-          { deletedFor: [...deletedFor, userId] }
+          { deletedFor: [...deletedFor, userId], visibleTo }
         );
       });
 
-      const updatedMessages = await Message.find({
-        chatRoomId: chatroomId,
-      }).sort({
-        createdAt: 1,
-      });
       res.status(200).json({
         status: true,
-        data: updatedMessages,
+        data: "messages deleted for you successfully",
       });
     } catch (err) {
       res.status(500).json({
         status: false,
-        data: [],
+        data: "error in deleted messages for you",
       });
     }
   },
