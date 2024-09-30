@@ -7,7 +7,7 @@ const messageSchema = new mongoose_1.Schema({
     text: String,
     visibleTo: [String],
     deletedFor: [String],
-    deleteForEveryOne: Number,
+    deleteForEveryOne: { type: Number, default: 0 },
 }, { timestamps: true });
 const Message = (0, mongoose_1.model)("Message", messageSchema);
 exports.default = Message;

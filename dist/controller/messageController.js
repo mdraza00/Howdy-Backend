@@ -51,7 +51,15 @@ exports.default = {
             const messages = yield messageModel_1.default.find({ chatRoomId: roomId }).sort({
                 createdAt: 1,
             });
-            res.status(200).json({ status: true, data: messages });
+            const updatedMessages = messages.map((message) => {
+                return message.deleteForEveryOne == 0
+                    ? message
+                    : Object.assign(Object.assign({}, message.toObject()), { text: "message has been deleted" });
+            });
+            yield chatRoomModel_1.default.findOneAndUpdate({ _id: roomId }, {
+                lastMessage: updatedMessages[updatedMessages.length - 1].text,
+            });
+            res.status(200).json({ status: true, data: updatedMessages });
         }
         catch (err) {
             res.json(500).json({
@@ -98,7 +106,11 @@ exports.default = {
                     const deletedFor = message && message.deletedFor ? message.deletedFor : [];
                     yield messageModel_1.default.findOneAndUpdate({ _id: messageId }, { deletedFor: [...deletedFor, userId] });
                 }));
-                const updatedMessages = yield messageModel_1.default.find({ chatRoomId: chatroomId });
+                const updatedMessages = yield messageModel_1.default.find({
+                    chatRoomId: chatroomId,
+                }).sort({
+                    createdAt: 1,
+                });
                 res.status(200).json({
                     status: true,
                     data: updatedMessages,
@@ -115,21 +127,23 @@ exports.default = {
     deleteForEveryOne: function (req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { messages, userId, chatroomId } = req.params;
-                console.log(messages);
+                const { messages, chatroomId } = req.params;
                 const messagesId = messages
                     .split("__")
                     .map((message) => message.split("--")[0]);
                 messagesId.forEach((messageId) => __awaiter(this, void 0, void 0, function* () {
-                    const message = yield messageModel_1.default.findOne({ _id: messageId });
-                    const updatedMessage = yield messageModel_1.default.findOneAndUpdate({ _id: messageId }, {
+                    yield messageModel_1.default.findOneAndUpdate({ _id: messageId }, {
                         deleteForEveryOne: 1,
                     });
                 }));
-                const updatedMessages = yield messageModel_1.default.find({ chatRoomId: chatroomId });
+                const updatedMessages = yield messageModel_1.default.find({
+                    chatRoomId: chatroomId,
+                }).sort({
+                    createdAt: 1,
+                });
                 res.status(200).json({
                     status: true,
-                    message: updatedMessages,
+                    message: "message deleted successfully",
                 });
             }
             catch (err) {

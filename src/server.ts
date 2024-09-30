@@ -33,8 +33,8 @@ io.on("connection", (socket) => {
     io.to(data.roomId).emit("receieve message", data);
     io.to(data.roomId).emit("last message", data);
   });
-  socket.on("delete-messages", (data) => {
-    io.to(data.roomId).emit("delete-messages", data);
+  socket.on("messages-deleted-for-everyone", (data) => {
+    io.to(data.roomId).emit("messages-deleted-for-everyone");
   });
 });
 

@@ -43,7 +43,21 @@ export default {
       const messages = await Message.find({ chatRoomId: roomId }).sort({
         createdAt: 1,
       });
-      res.status(200).json({ status: true, data: messages });
+
+      const updatedMessages = messages.map((message) => {
+        return message.deleteForEveryOne == 0
+          ? message
+          : { ...message.toObject(), text: "message has been deleted" };
+      });
+
+      await ChatRoom.findOneAndUpdate(
+        { _id: roomId },
+        {
+          lastMessage: updatedMessages[updatedMessages.length - 1].text,
+        }
+      );
+
+      res.status(200).json({ status: true, data: updatedMessages });
     } catch (err) {
       res.json(500).json({
         status: false,
@@ -102,7 +116,11 @@ export default {
         );
       });
 
-      const updatedMessages = await Message.find({ chatRoomId: chatroomId });
+      const updatedMessages = await Message.find({
+        chatRoomId: chatroomId,
+      }).sort({
+        createdAt: 1,
+      });
       res.status(200).json({
         status: true,
         data: updatedMessages,
@@ -116,25 +134,29 @@ export default {
   },
   deleteForEveryOne: async function (req: Request, res: Response) {
     try {
-      const { messages, userId, chatroomId } = req.params;
-      console.log(messages);
+      const { messages, chatroomId } = req.params;
       const messagesId = messages
         .split("__")
         .map((message) => message.split("--")[0]);
 
       messagesId.forEach(async (messageId) => {
-        const message = await Message.findOne({ _id: messageId });
-        const updatedMessage = await Message.findOneAndUpdate(
+        await Message.findOneAndUpdate(
           { _id: messageId },
           {
             deleteForEveryOne: 1,
           }
         );
       });
-      const updatedMessages = await Message.find({ chatRoomId: chatroomId });
+
+      const updatedMessages = await Message.find({
+        chatRoomId: chatroomId,
+      }).sort({
+        createdAt: 1,
+      });
+
       res.status(200).json({
         status: true,
-        message: updatedMessages,
+        message: "message deleted successfully",
       });
     } catch (err) {
       res.status(500).json({

@@ -14,7 +14,7 @@ const messageSchema = new Schema<iMessage>(
     text: String,
     visibleTo: [String],
     deletedFor: [String],
-    deleteForEveryOne: Number,
+    deleteForEveryOne: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
