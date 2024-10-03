@@ -1,12 +1,30 @@
 import { Router } from "express";
+import multer from "multer";
 import messageController from "../controller/messageController";
 import authenticateUser from "../controller/authenticateUser";
 const messageRouter = Router();
+
+const imageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      return cb(null, "public/uploads/multimedia-messages");
+    },
+    filename: (req, file, cb) => {
+      return cb(null, `${Date.now()}--${file.originalname}`);
+    },
+  }),
+});
 
 messageRouter.post(
   "/save",
   authenticateUser.authUserMiddleware,
   messageController.saveMessage
+);
+messageRouter.post(
+  "/save/multimedia",
+  authenticateUser.authUserMiddleware,
+  imageUpload.single("multimedia"),
+  messageController.saveMultimediaMessage
 );
 messageRouter.get(
   "/get/:roomId",

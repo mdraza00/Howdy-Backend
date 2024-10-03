@@ -6,7 +6,7 @@ import authenticateUser from "../controller/authenticateUser";
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      return cb(null, "public/uploads/");
+      return cb(null, "public/uploads/userProfile");
     },
     filename: (req, file, cb) => {
       return cb(null, `${Date.now()}--${file.originalname}`);

@@ -7,7 +7,6 @@ export default {
   saveMessage: async (req: Request, res: Response) => {
     try {
       const { chatRoomId, senderId, text, messageType } = req.body;
-
       if (messageType === MessageType.TEXT) {
         const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
         const updatedChatRoom = await ChatRoom.findOneAndUpdate(
@@ -38,11 +37,6 @@ export default {
           status: true,
           message: message,
         });
-
-        // res.status(200).json({
-        //   status: true,
-        //   message: "message saved",
-        // });
       }
     } catch (err) {
       res.status(500).json({
@@ -51,7 +45,93 @@ export default {
       });
     }
   },
+  saveMultimediaMessage: async (req: Request, res: Response) => {
+    try {
+      const { chatRoomId, senderId, messageType, caption } = req.body;
+      const file = req.file;
 
+      if (messageType === MessageType.IMAGE) {
+        const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
+
+        const updatedChatRoom = await ChatRoom.findOneAndUpdate(
+          { _id: chatRoomId },
+          {
+            lastMessage: MessageType.IMAGE,
+            lastMessageDate: new Date().toString(),
+            lastMessageVisibleTo: chatroom?.members,
+          }
+        );
+
+        const chatRoomMembers = updatedChatRoom
+          ? updatedChatRoom.members
+          : ["", ""];
+
+        const message = await Message.create({
+          chatRoomId: chatRoomId,
+          senderId: senderId,
+          messageType: MessageType.IMAGE,
+          text: MessageType.IMAGE,
+          image: {
+            name: file?.filename,
+            caption: caption,
+            address: file?.destination.slice(7),
+          },
+          video: null,
+          doc: null,
+          visibleTo: chatRoomMembers,
+          deletedFor: [],
+          deleteForEveryOne: 0,
+        });
+
+        res.status(200).json({
+          status: true,
+          message: message,
+        });
+      }
+      if (messageType === MessageType.DOC) {
+        const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
+
+        const updatedChatRoom = await ChatRoom.findOneAndUpdate(
+          { _id: chatRoomId },
+          {
+            lastMessage: "Image",
+            lastMessageDate: new Date().toString(),
+            lastMessageVisibleTo: chatroom?.members,
+          }
+        );
+
+        const chatRoomMembers = updatedChatRoom
+          ? updatedChatRoom.members
+          : ["", ""];
+
+        const message = await Message.create({
+          chatRoomId: chatRoomId,
+          senderId: senderId,
+          messageType: MessageType.IMAGE,
+          text: "Image",
+          image: {
+            name: file?.filename,
+            caption: caption,
+            address: file?.destination.slice(7),
+          },
+          video: null,
+          visibleTo: chatRoomMembers,
+          deletedFor: [],
+          deleteForEveryOne: 0,
+        });
+
+        res.status(200).json({
+          status: true,
+          message: message,
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        status: false,
+        message: null,
+      });
+    }
+  },
   getRoomMessages: async (req: Request, res: Response) => {
     const { roomId } = req.params;
     try {

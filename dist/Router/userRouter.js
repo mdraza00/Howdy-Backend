@@ -10,7 +10,7 @@ const authenticateUser_1 = __importDefault(require("../controller/authenticateUs
 const upload = (0, multer_1.default)({
     storage: multer_1.default.diskStorage({
         destination: (req, file, cb) => {
-            return cb(null, "public/uploads/");
+            return cb(null, "public/uploads/userProfile");
         },
         filename: (req, file, cb) => {
             return cb(null, `${Date.now()}--${file.originalname}`);

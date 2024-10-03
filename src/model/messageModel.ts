@@ -13,6 +13,7 @@ const messageSchema = new Schema(
     text: String,
     image: { name: String, caption: String, address: String },
     video: { name: String, caption: String, address: String },
+    doc: { name: String, caption: String, address: String },
     visibleTo: [String],
     deletedFor: [String],
     deleteForEveryOne: { type: Number, default: 0 },
