@@ -1,34 +1,49 @@
 import { Request, Response } from "express";
 import Message from "../model/messageModel";
 import ChatRoom from "../model/chatRoomModel";
+import { MessageType } from "../enum/message";
 
 export default {
   saveMessage: async (req: Request, res: Response) => {
     try {
-      const { chatRoomId, senderId, text } = req.body;
+      const { chatRoomId, senderId, text, messageType } = req.body;
 
-      const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
-      const updatedChatRoom = await ChatRoom.findOneAndUpdate(
-        { _id: chatRoomId },
-        {
-          lastMessage: text,
-          lastMessageDate: new Date().toString(),
-          lastMessageVisibleTo: chatroom?.members,
-        }
-      );
-      const chatRoomMembers = updatedChatRoom
-        ? updatedChatRoom.members
-        : ["", ""];
-      const message = await Message.create({
-        chatRoomId,
-        senderId,
-        text,
-        visibleTo: chatRoomMembers,
-      });
-      res.status(200).json({
-        status: true,
-        message: message,
-      });
+      if (messageType === MessageType.TEXT) {
+        const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
+        const updatedChatRoom = await ChatRoom.findOneAndUpdate(
+          { _id: chatRoomId },
+          {
+            lastMessage: text,
+            lastMessageDate: new Date().toString(),
+            lastMessageVisibleTo: chatroom?.members,
+          }
+        );
+        const chatRoomMembers = updatedChatRoom
+          ? updatedChatRoom.members
+          : ["", ""];
+
+        const message = await Message.create({
+          chatRoomId: chatRoomId,
+          senderId: senderId,
+          messageType: MessageType.TEXT,
+          text: text,
+          image: null,
+          video: null,
+          visibleTo: chatRoomMembers,
+          deletedFor: [],
+          deleteForEveryOne: 0,
+        });
+
+        res.status(200).json({
+          status: true,
+          message: message,
+        });
+
+        // res.status(200).json({
+        //   status: true,
+        //   message: "message saved",
+        // });
+      }
     } catch (err) {
       res.status(500).json({
         status: false,
