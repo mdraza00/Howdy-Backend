@@ -277,6 +277,7 @@ export default {
           { _id: messageId },
           {
             deleteForEveryOne: 1,
+            messageType: MessageType.TEXT,
           }
         );
       });

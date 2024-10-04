@@ -249,6 +249,7 @@ exports.default = {
                 messagesId.forEach((messageId) => __awaiter(this, void 0, void 0, function* () {
                     yield messageModel_1.default.findOneAndUpdate({ _id: messageId }, {
                         deleteForEveryOne: 1,
+                        messageType: message_1.MessageType.TEXT,
                     });
                 }));
                 const updatedMessages = yield messageModel_1.default.find({
