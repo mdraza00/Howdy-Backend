@@ -87,14 +87,13 @@ export default {
           status: true,
           message: message,
         });
-      }
-      if (messageType === MessageType.DOC) {
+      } else if (messageType === MessageType.VIDEO) {
         const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
 
         const updatedChatRoom = await ChatRoom.findOneAndUpdate(
           { _id: chatRoomId },
           {
-            lastMessage: "Image",
+            lastMessage: MessageType.VIDEO,
             lastMessageDate: new Date().toString(),
             lastMessageVisibleTo: chatroom?.members,
           }
@@ -107,14 +106,52 @@ export default {
         const message = await Message.create({
           chatRoomId: chatRoomId,
           senderId: senderId,
-          messageType: MessageType.IMAGE,
-          text: "Image",
-          image: {
+          messageType: MessageType.VIDEO,
+          text: MessageType.VIDEO,
+          image: null,
+          video: {
             name: file?.filename,
             caption: caption,
             address: file?.destination.slice(7),
           },
+          doc: null,
+          visibleTo: chatRoomMembers,
+          deletedFor: [],
+          deleteForEveryOne: 0,
+        });
+
+        res.status(200).json({
+          status: true,
+          message: message,
+        });
+      } else if (messageType === MessageType.DOC) {
+        const chatroom = await ChatRoom.findOne({ _id: chatRoomId });
+
+        const updatedChatRoom = await ChatRoom.findOneAndUpdate(
+          { _id: chatRoomId },
+          {
+            lastMessage: MessageType.DOC,
+            lastMessageDate: new Date().toString(),
+            lastMessageVisibleTo: chatroom?.members,
+          }
+        );
+
+        const chatRoomMembers = updatedChatRoom
+          ? updatedChatRoom.members
+          : ["", ""];
+
+        const message = await Message.create({
+          chatRoomId: chatRoomId,
+          senderId: senderId,
+          messageType: MessageType.DOC,
+          text: MessageType.DOC,
+          image: null,
           video: null,
+          doc: {
+            name: file?.filename,
+            caption: caption,
+            address: file?.destination.slice(7),
+          },
           visibleTo: chatRoomMembers,
           deletedFor: [],
           deleteForEveryOne: 0,

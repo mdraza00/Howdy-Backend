@@ -88,10 +88,10 @@ exports.default = {
                     message: message,
                 });
             }
-            if (messageType === message_1.MessageType.DOC) {
+            else if (messageType === message_1.MessageType.VIDEO) {
                 const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatRoomId });
                 const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatRoomId }, {
-                    lastMessage: "Image",
+                    lastMessage: message_1.MessageType.VIDEO,
                     lastMessageDate: new Date().toString(),
                     lastMessageVisibleTo: chatroom === null || chatroom === void 0 ? void 0 : chatroom.members,
                 });
@@ -101,14 +101,46 @@ exports.default = {
                 const message = yield messageModel_1.default.create({
                     chatRoomId: chatRoomId,
                     senderId: senderId,
-                    messageType: message_1.MessageType.IMAGE,
-                    text: "Image",
-                    image: {
+                    messageType: message_1.MessageType.VIDEO,
+                    text: message_1.MessageType.VIDEO,
+                    image: null,
+                    video: {
                         name: file === null || file === void 0 ? void 0 : file.filename,
                         caption: caption,
                         address: file === null || file === void 0 ? void 0 : file.destination.slice(7),
                     },
+                    doc: null,
+                    visibleTo: chatRoomMembers,
+                    deletedFor: [],
+                    deleteForEveryOne: 0,
+                });
+                res.status(200).json({
+                    status: true,
+                    message: message,
+                });
+            }
+            else if (messageType === message_1.MessageType.DOC) {
+                const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatRoomId });
+                const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatRoomId }, {
+                    lastMessage: message_1.MessageType.DOC,
+                    lastMessageDate: new Date().toString(),
+                    lastMessageVisibleTo: chatroom === null || chatroom === void 0 ? void 0 : chatroom.members,
+                });
+                const chatRoomMembers = updatedChatRoom
+                    ? updatedChatRoom.members
+                    : ["", ""];
+                const message = yield messageModel_1.default.create({
+                    chatRoomId: chatRoomId,
+                    senderId: senderId,
+                    messageType: message_1.MessageType.DOC,
+                    text: message_1.MessageType.DOC,
+                    image: null,
                     video: null,
+                    doc: {
+                        name: file === null || file === void 0 ? void 0 : file.filename,
+                        caption: caption,
+                        address: file === null || file === void 0 ? void 0 : file.destination.slice(7),
+                    },
                     visibleTo: chatRoomMembers,
                     deletedFor: [],
                     deleteForEveryOne: 0,
