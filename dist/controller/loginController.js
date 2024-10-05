@@ -17,6 +17,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const jwt_1 = __importDefault(require("./jwt"));
 const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
+    console.log("working...");
     try {
         const user = yield userModel_1.default.findOne({ email });
         if (user) {

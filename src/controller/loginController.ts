@@ -5,7 +5,7 @@ import { Request, Response } from "express";
 
 const loginUser = async (req: Request, res: Response) => {
   const { email, password } = req.body;
-
+  console.log("working...");
   try {
     const user = await User.findOne({ email });
     if (user) {

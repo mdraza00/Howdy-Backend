@@ -36,6 +36,7 @@ exports.default = {
                     text: text,
                     image: null,
                     video: null,
+                    doc: null,
                     visibleTo: chatRoomMembers,
                     deletedFor: [],
                     deleteForEveryOne: 0,
