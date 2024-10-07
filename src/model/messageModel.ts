@@ -17,6 +17,7 @@ const messageSchema = new Schema(
     visibleTo: [String],
     deletedFor: [String],
     deleteForEveryOne: { type: Number, default: 0 },
+    replyTo: { type: String, default: undefined },
   },
   { timestamps: true }
 );

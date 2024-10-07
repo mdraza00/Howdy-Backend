@@ -18,34 +18,33 @@ const message_1 = require("../enum/message");
 exports.default = {
     saveMessage: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const { chatRoomId, senderId, text, messageType } = req.body;
-            if (messageType === message_1.MessageType.TEXT) {
-                const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatRoomId });
-                const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatRoomId }, {
-                    lastMessage: text,
-                    lastMessageDate: new Date().toString(),
-                    lastMessageVisibleTo: chatroom === null || chatroom === void 0 ? void 0 : chatroom.members,
-                });
-                const chatRoomMembers = updatedChatRoom
-                    ? updatedChatRoom.members
-                    : ["", ""];
-                const message = yield messageModel_1.default.create({
-                    chatRoomId: chatRoomId,
-                    senderId: senderId,
-                    messageType: message_1.MessageType.TEXT,
-                    text: text,
-                    image: null,
-                    video: null,
-                    doc: null,
-                    visibleTo: chatRoomMembers,
-                    deletedFor: [],
-                    deleteForEveryOne: 0,
-                });
-                res.status(200).json({
-                    status: true,
-                    message: message,
-                });
-            }
+            const { chatRoomId, senderId, text, messageType, replyTo } = req.body;
+            const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatRoomId });
+            const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatRoomId }, {
+                lastMessage: text,
+                lastMessageDate: new Date().toString(),
+                lastMessageVisibleTo: chatroom === null || chatroom === void 0 ? void 0 : chatroom.members,
+            });
+            const chatRoomMembers = updatedChatRoom
+                ? updatedChatRoom.members
+                : ["", ""];
+            const message = yield messageModel_1.default.create({
+                chatRoomId: chatRoomId,
+                senderId: senderId,
+                messageType: message_1.MessageType.TEXT,
+                text: text,
+                image: null,
+                video: null,
+                doc: null,
+                visibleTo: chatRoomMembers,
+                deletedFor: [],
+                deleteForEveryOne: 0,
+                replyTo,
+            });
+            res.status(200).json({
+                status: true,
+                message: message,
+            });
         }
         catch (err) {
             res.status(500).json({
