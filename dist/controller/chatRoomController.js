@@ -14,8 +14,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const chatRoomModel_1 = __importDefault(require("../model/chatRoomModel"));
 const messageModel_1 = __importDefault(require("../model/messageModel"));
+const userModel_1 = __importDefault(require("../model/userModel"));
 exports.default = {
-    createChatRoom: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    createOrGetChatRoom: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { senderId, recipientId } = req.body;
         try {
             let chatRoom = yield chatRoomModel_1.default.findOne({
@@ -59,6 +60,66 @@ exports.default = {
             res.status(500).json({
                 status: "fail",
                 message: `error = ${err}`,
+            });
+        }
+    }),
+    getMyChatRoomMembers: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { userId } = req.params;
+        try {
+            const chatrooms = yield chatRoomModel_1.default.find({ members: { $in: [userId] } });
+            const usersId = chatrooms.map((chatroom) => chatroom.members.filter((id) => id !== userId)[0]);
+            const users = yield userModel_1.default.find({ _id: { $in: usersId } });
+            const usersData = users.map((user) => {
+                var _a;
+                return {
+                    _id: user._id.toString(),
+                    email: user.email,
+                    username: user.username,
+                    profilePhotoAddress: (_a = user.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
+                };
+            });
+            res.status(200).json({
+                status: true,
+                message: usersData,
+            });
+        }
+        catch (err) {
+            res.status(500).json({
+                status: "fail",
+                message: `error = ${err}`,
+            });
+        }
+    }),
+    getChatRoomMembersByName: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { userId, username } = req.params;
+        const usernameStartsWithRegEx = new RegExp(`^${username}`, "i");
+        try {
+            const chatrooms = yield chatRoomModel_1.default.find({ members: { $in: [userId] } });
+            const membersId = chatrooms.map((chatroom) => chatroom.members.filter((memberId) => memberId !== userId)[0]);
+            const users = yield userModel_1.default.find({
+                $and: [
+                    { username: { $regex: usernameStartsWithRegEx } },
+                    { _id: { $in: membersId } },
+                ],
+            }).sort({ username: 1 });
+            const usersData = users.map((user) => {
+                var _a;
+                return {
+                    _id: user._id.toString(),
+                    email: user.email,
+                    username: user.username,
+                    profilePhotoAddress: (_a = user.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
+                };
+            });
+            res.status(200).json({
+                status: true,
+                message: usersData,
+            });
+        }
+        catch (err) {
+            res.status(500).json({
+                status: false,
+                message: "failed. err = " + err,
             });
         }
     }),

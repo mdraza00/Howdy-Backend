@@ -55,7 +55,7 @@ exports.default = {
     }),
     saveMultimediaMessage: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const { chatRoomId, senderId, messageType, caption } = req.body;
+            const { chatRoomId, senderId, messageType, caption, replyTo } = req.body;
             const file = req.file;
             if (messageType === message_1.MessageType.IMAGE) {
                 const chatroom = yield chatRoomModel_1.default.findOne({ _id: chatRoomId });
@@ -82,6 +82,7 @@ exports.default = {
                     visibleTo: chatRoomMembers,
                     deletedFor: [],
                     deleteForEveryOne: 0,
+                    replyTo: replyTo ? replyTo : undefined,
                 });
                 res.status(200).json({
                     status: true,
@@ -158,6 +159,67 @@ exports.default = {
             });
         }
     }),
+    forwardMessage: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { chatroomId, messageId, senderId } = req.body;
+        try {
+            const chatroom = yield chatRoomModel_1.default.findById(chatroomId);
+            const message = yield messageModel_1.default.findById(messageId);
+            const messageObject = message === null || message === void 0 ? void 0 : message.toObject();
+            if (chatroom && messageObject) {
+                const newMessage = yield messageModel_1.default.create({
+                    chatRoomId: chatroomId,
+                    senderId: senderId,
+                    messageType: messageObject.messageType,
+                    text: messageObject.text,
+                    image: messageObject.image,
+                    video: messageObject.video,
+                    doc: messageObject.doc,
+                    visibleTo: chatroom.members,
+                    deletedFor: [],
+                    deleteForEveryOne: 0,
+                    replyTo: undefined,
+                });
+                console.log(newMessage);
+                const updatedChatRoom = yield chatRoomModel_1.default.findOneAndUpdate({ _id: chatroom === null || chatroom === void 0 ? void 0 : chatroom._id.toString() }, {
+                    lastMessage: newMessage.text,
+                    lastMessageDate: new Date().toString(),
+                    lastMessageVisibleTo: chatroom === null || chatroom === void 0 ? void 0 : chatroom.members,
+                });
+                res.status(200).json({
+                    status: true,
+                    message: newMessage,
+                });
+            }
+            else {
+                res.status(200).json({
+                    status: true,
+                    message: null,
+                });
+            }
+        }
+        catch (err) {
+            res.status(500).json({
+                status: false,
+                message: null,
+            });
+        }
+    }),
+    getMessageById: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { id } = req.params;
+        try {
+            const message = yield messageModel_1.default.findById(id);
+            res.status(200).json({
+                status: true,
+                message: message,
+            });
+        }
+        catch (err) {
+            res.status(500).json({
+                status: false,
+                message: null,
+            });
+        }
+    }),
     getRoomMessages: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { roomId } = req.params;
         try {
@@ -182,7 +244,7 @@ exports.default = {
         catch (err) {
             res.json(500).json({
                 status: false,
-                message: "some error has occured",
+                message: "some error has occurred",
             });
         }
     }),

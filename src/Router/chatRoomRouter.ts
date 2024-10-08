@@ -6,7 +6,7 @@ const chatRoomRouter = Router();
 chatRoomRouter.post(
   "/createRoom",
   authenticateUser.authUserMiddleware,
-  chatRoomController.createChatRoom
+  chatRoomController.createOrGetChatRoom
 );
 
 chatRoomRouter.post(
@@ -20,7 +20,16 @@ chatRoomRouter.get(
   authenticateUser.authUserMiddleware,
   chatRoomController.getChatRoomLastMessage
 );
-
+chatRoomRouter.get(
+  "/get-my-chatroom-members/:userId",
+  authenticateUser.authUserMiddleware,
+  chatRoomController.getMyChatRoomMembers
+);
+chatRoomRouter.get(
+  "/get-my-chatroom-members-by-name/:userId/:username",
+  authenticateUser.authUserMiddleware,
+  chatRoomController.getChatRoomMembersByName
+);
 chatRoomRouter.get(
   "/get/chatRoomMembers/:chatRoomId",
   authenticateUser.authUserMiddleware,

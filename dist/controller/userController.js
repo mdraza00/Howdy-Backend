@@ -98,12 +98,20 @@ const userController = {
         const { userNametoFind, senderId } = req.body;
         const regExStr1 = new RegExp(`^${userNametoFind}`, "i");
         const regExStr2 = new RegExp(`${userNametoFind}`, "i");
+        const chatrooms = yield chatRoomModel_1.default.find({ members: { $in: [senderId] } });
+        const membersId = chatrooms.map((chatroom) => chatroom.members.filter((memberId) => memberId !== senderId)[0]);
         try {
             const usersWhoseNameStartsWith = yield userModel_1.default.find({
-                $and: [{ username: { $regex: regExStr1 } }, { _id: { $ne: senderId } }],
+                $and: [
+                    { username: { $regex: regExStr1 } },
+                    { _id: { $nin: [...membersId, senderId] } },
+                ],
             });
             const usersWhoseNameContaines = yield userModel_1.default.find({
-                $and: [{ username: { $regex: regExStr2 } }, { _id: { $ne: senderId } }],
+                $and: [
+                    { username: { $regex: regExStr2 } },
+                    { _id: { $nin: [...chatrooms, senderId] } },
+                ],
             });
             const foundUsersWithDuplicates = [
                 ...usersWhoseNameStartsWith,

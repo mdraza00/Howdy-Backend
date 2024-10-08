@@ -47,7 +47,7 @@ export default {
   },
   saveMultimediaMessage: async (req: Request, res: Response) => {
     try {
-      const { chatRoomId, senderId, messageType, caption } = req.body;
+      const { chatRoomId, senderId, messageType, caption, replyTo } = req.body;
       const file = req.file;
 
       if (messageType === MessageType.IMAGE) {
@@ -81,6 +81,7 @@ export default {
           visibleTo: chatRoomMembers,
           deletedFor: [],
           deleteForEveryOne: 0,
+          replyTo: replyTo ? replyTo : undefined,
         });
 
         res.status(200).json({
@@ -169,6 +170,72 @@ export default {
       });
     }
   },
+
+  forwardMessage: async (req: Request, res: Response) => {
+    const { chatroomId, messageId, senderId } = req.body;
+    try {
+      const chatroom = await ChatRoom.findById(chatroomId);
+
+      const message = await Message.findById(messageId);
+
+      const messageObject = message?.toObject();
+
+      if (chatroom && messageObject) {
+        const newMessage = await Message.create({
+          chatRoomId: chatroomId,
+          senderId: senderId,
+          messageType: messageObject.messageType,
+          text: messageObject.text,
+          image: messageObject.image,
+          video: messageObject.video,
+          doc: messageObject.doc,
+          visibleTo: chatroom.members,
+          deletedFor: [],
+          deleteForEveryOne: 0,
+          replyTo: undefined,
+        });
+        console.log(newMessage);
+
+        const updatedChatRoom = await ChatRoom.findOneAndUpdate(
+          { _id: chatroom?._id.toString() },
+          {
+            lastMessage: newMessage.text,
+            lastMessageDate: new Date().toString(),
+            lastMessageVisibleTo: chatroom?.members,
+          }
+        );
+        res.status(200).json({
+          status: true,
+          message: newMessage,
+        });
+      } else {
+        res.status(200).json({
+          status: true,
+          message: null,
+        });
+      }
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: null,
+      });
+    }
+  },
+  getMessageById: async (req: Request, res: Response) => {
+    const { id } = req.params;
+    try {
+      const message = await Message.findById(id);
+      res.status(200).json({
+        status: true,
+        message: message,
+      });
+    } catch (err) {
+      res.status(500).json({
+        status: false,
+        message: null,
+      });
+    }
+  },
   getRoomMessages: async (req: Request, res: Response) => {
     const { roomId } = req.params;
     try {
@@ -196,7 +263,7 @@ export default {
     } catch (err) {
       res.json(500).json({
         status: false,
-        message: "some error has occured",
+        message: "some error has occurred",
       });
     }
   },

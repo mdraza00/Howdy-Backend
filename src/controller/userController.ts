@@ -42,7 +42,6 @@ const userController = {
 
   getUsers: async (req: Request, res: Response) => {
     const { userId } = req.params;
-
     try {
       const chatRooms = await ChatRoom.find({ members: { $in: [userId] } });
       const chatRoomMembers: string[] = [];
@@ -84,13 +83,26 @@ const userController = {
     const regExStr1 = new RegExp(`^${userNametoFind}`, "i");
     const regExStr2 = new RegExp(`${userNametoFind}`, "i");
 
+    const chatrooms = await ChatRoom.find({ members: { $in: [senderId] } });
+
+    const membersId = chatrooms.map(
+      (chatroom) =>
+        chatroom.members.filter((memberId) => memberId !== senderId)[0]
+    );
+
     try {
       const usersWhoseNameStartsWith = await User.find({
-        $and: [{ username: { $regex: regExStr1 } }, { _id: { $ne: senderId } }],
+        $and: [
+          { username: { $regex: regExStr1 } },
+          { _id: { $nin: [...membersId, senderId] } },
+        ],
       });
 
       const usersWhoseNameContaines = await User.find({
-        $and: [{ username: { $regex: regExStr2 } }, { _id: { $ne: senderId } }],
+        $and: [
+          { username: { $regex: regExStr2 } },
+          { _id: { $nin: [...chatrooms, senderId] } },
+        ],
       });
 
       const foundUsersWithDuplicates = [

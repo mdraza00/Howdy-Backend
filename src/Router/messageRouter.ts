@@ -16,10 +16,20 @@ messageRouter.post(
   imageUpload.single("multimedia"),
   messageController.saveMultimediaMessage
 );
+messageRouter.post(
+  "/forward-message",
+  authenticateUser.authUserMiddleware,
+  messageController.forwardMessage
+);
 messageRouter.get(
   "/get/:roomId",
   authenticateUser.authUserMiddleware,
   messageController.getRoomMessages
+);
+messageRouter.get(
+  "/get-message/:id",
+  authenticateUser.authUserMiddleware,
+  messageController.getMessageById
 );
 messageRouter.patch(
   "/clear-messages",
