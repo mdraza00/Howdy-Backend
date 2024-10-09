@@ -35,8 +35,9 @@ const app_1 = __importDefault(require("./app"));
 const server = (0, node_http_1.createServer)(app_1.default);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "*",
+        origin: "http://192.168.116.164:5173",
         methods: ["GET", "POST"],
+        credentials: true,
     },
 });
 io.on("connection", (socket) => {
@@ -57,6 +58,7 @@ io.on("connection", (socket) => {
     });
 });
 app_1.default.use("/", (req, res) => {
+    console.log(req);
     res.send("Hello from App!");
 });
 server.listen(3000, () => {

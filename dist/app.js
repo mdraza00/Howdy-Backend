@@ -14,7 +14,8 @@ const authenticateRouter_1 = __importDefault(require("./Router/authenticateRoute
 const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 const corsOptions = {
-    origin: "*",
+    origin: "http://192.168.116.164:5173",
+    credentials: true,
 };
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());

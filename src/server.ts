@@ -20,8 +20,9 @@ import app from "./app";
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "http://192.168.116.164:5173",
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -44,6 +45,7 @@ io.on("connection", (socket) => {
 });
 
 app.use("/", (req, res) => {
+  console.log(req);
   res.send("Hello from App!");
 });
 

@@ -11,7 +11,8 @@ import cors from "cors";
 
 const app: Express = express();
 const corsOptions = {
-  origin: "*",
+  origin: "http://192.168.116.164:5173",
+  credentials: true,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
