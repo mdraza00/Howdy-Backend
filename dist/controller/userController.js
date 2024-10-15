@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const userModel_1 = __importDefault(require("../model/userModel"));
 const chatRoomModel_1 = __importDefault(require("../model/chatRoomModel"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const friendRequest_model_1 = __importDefault(require("../model/friendRequest.model"));
 const hashPassword = function (password) {
     return __awaiter(this, void 0, void 0, function* () {
         const salt = yield bcrypt_1.default.genSalt(15);
@@ -56,41 +57,37 @@ const userController = {
     getUsers: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { userId } = req.params;
         try {
-            const chatRooms = yield chatRoomModel_1.default.find({ members: { $in: [userId] } });
-            const chatRoomMembers = [];
-            chatRooms.forEach((chatRoom) => {
-                chatRoomMembers.push(chatRoom.members[1]);
-            });
-            chatRoomMembers.push(userId);
-            const foundUsers = yield userModel_1.default.find({
-                _id: { $nin: chatRoomMembers },
-            }).sort({ username: 1 });
-            if (foundUsers) {
-                const users = foundUsers.map((user) => {
+            const user = yield userModel_1.default.findOne({ _id: userId });
+            if (user) {
+                const users = yield userModel_1.default.find({
+                    _id: { $nin: [...user.friends, user._id.toString()] },
+                });
+                const usersData = yield Promise.all(users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
                     var _a;
+                    const friendRequest = yield friendRequest_model_1.default.findOne({
+                        request_to: user._id.toString(),
+                        request_by: userId,
+                    });
                     return {
-                        _id: user._id,
-                        email: user.email,
+                        _id: user._id.toString(),
                         username: user.username,
                         profilePhotoAddress: (_a = user.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
+                        isFriendRequest: !!friendRequest,
                     };
-                });
+                })));
                 res.status(200).json({
                     status: true,
-                    message: users,
+                    message: usersData,
                 });
             }
             else {
-                res.status(404).json({
-                    status: false,
-                    message: "user not found",
-                });
+                res.send(404).json({ status: false, message: "user not found." });
             }
         }
         catch (err) {
             res.status(500).json({
                 status: "fail",
-                message: `error has occured ${err}`,
+                message: `error has occurred ${err}`,
             });
         }
     }),
@@ -98,49 +95,61 @@ const userController = {
         const { userNametoFind, senderId } = req.body;
         const regExStr1 = new RegExp(`^${userNametoFind}`, "i");
         const regExStr2 = new RegExp(`${userNametoFind}`, "i");
-        const chatrooms = yield chatRoomModel_1.default.find({ members: { $in: [senderId] } });
-        const membersId = chatrooms.map((chatroom) => chatroom.members.filter((memberId) => memberId !== senderId)[0]);
         try {
-            const usersWhoseNameStartsWith = yield userModel_1.default.find({
-                $and: [
-                    { username: { $regex: regExStr1 } },
-                    { _id: { $nin: [...membersId, senderId] } },
-                ],
-            });
-            const usersWhoseNameContaines = yield userModel_1.default.find({
-                $and: [
-                    { username: { $regex: regExStr2 } },
-                    { _id: { $nin: [...chatrooms, senderId] } },
-                ],
-            });
-            const foundUsersWithDuplicates = [
-                ...usersWhoseNameStartsWith,
-                ...usersWhoseNameContaines,
-            ];
-            const foundUsers = [
-                ...new Set(foundUsersWithDuplicates.map((e) => JSON.stringify(e))),
-            ].map((e) => JSON.parse(e));
-            const filteredUsersWithNull = yield Promise.all(foundUsers.map((user) => __awaiter(void 0, void 0, void 0, function* () {
-                const chatRoom = yield chatRoomModel_1.default.findOne({
-                    members: { $all: [senderId, user._id] },
+            const userSender = yield userModel_1.default.findById(senderId);
+            if (userSender) {
+                const usersWhoseNameStartsWith = yield userModel_1.default.find({
+                    $and: [
+                        { username: { $regex: regExStr1 } },
+                        { _id: { $nin: [...userSender.friends, senderId] } },
+                    ],
                 });
-                return !chatRoom ? user : null;
-            })));
-            const result = filteredUsersWithNull.filter((user) => !!user);
-            if (result) {
-                const users = result.map((user) => {
-                    var _a;
-                    return {
-                        _id: user._id,
-                        email: user.email,
-                        username: user.username,
-                        profilePhotoAddress: (_a = user.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
-                    };
+                const usersWhoseNameContaines = yield userModel_1.default.find({
+                    $and: [
+                        { username: { $regex: regExStr2 } },
+                        { _id: { $nin: [...userSender.friends, senderId] } },
+                    ],
                 });
-                res.status(200).json({
-                    status: true,
-                    message: users,
-                });
+                const foundUsersWithDuplicates = [
+                    ...usersWhoseNameStartsWith,
+                    ...usersWhoseNameContaines,
+                ];
+                const foundUsers = [
+                    ...new Set(foundUsersWithDuplicates.map((e) => JSON.stringify(e))),
+                ].map((e) => JSON.parse(e));
+                const filteredUsersWithNull = yield Promise.all(foundUsers.map((user) => __awaiter(void 0, void 0, void 0, function* () {
+                    const chatRoom = yield chatRoomModel_1.default.findOne({
+                        members: { $all: [senderId, user._id] },
+                    });
+                    return !chatRoom ? user : null;
+                })));
+                const result = filteredUsersWithNull.filter((user) => !!user);
+                if (result) {
+                    const users = yield Promise.all(result.map((user) => __awaiter(void 0, void 0, void 0, function* () {
+                        var _a;
+                        const friendRequest = yield friendRequest_model_1.default.findOne({
+                            request_to: user._id.toString(),
+                            request_by: senderId,
+                        });
+                        return {
+                            _id: user._id,
+                            username: user.username,
+                            profilePhotoAddress: (_a = user.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
+                            isFriendRequest: !!friendRequest,
+                        };
+                    })));
+                    console.log(users);
+                    res.status(200).json({
+                        status: true,
+                        message: users,
+                    });
+                }
+                else {
+                    res.status(404).json({
+                        status: false,
+                        message: "user not found",
+                    });
+                }
             }
             else {
                 res.status(404).json({

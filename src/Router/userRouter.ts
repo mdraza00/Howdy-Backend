@@ -1,5 +1,5 @@
 import multer from "multer";
-import { Router } from "express";
+import { Request, Response, NextFunction, Router } from "express";
 import userController from "../controller/userController";
 import authenticateUser from "../controller/authenticateUser";
 

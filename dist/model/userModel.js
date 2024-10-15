@@ -9,6 +9,7 @@ const userSchema = new mongoose_1.Schema({
     username: { type: String, required: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
+    friends: { type: [String], default: [] },
     profilePhoto: profilePhoto,
     about: { type: String, default: "Hey there! I am using Howdy." },
 });

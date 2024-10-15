@@ -2,6 +2,7 @@ import { Request, response, Response } from "express";
 import User from "../model/userModel";
 import ChatRoom from "../model/chatRoomModel";
 import bcrypt from "bcrypt";
+import Friend_Request from "../model/friendRequest.model";
 
 const hashPassword: (password: string) => Promise<string> = async function (
   password
@@ -43,38 +44,38 @@ const userController = {
   getUsers: async (req: Request, res: Response) => {
     const { userId } = req.params;
     try {
-      const chatRooms = await ChatRoom.find({ members: { $in: [userId] } });
-      const chatRoomMembers: string[] = [];
-      chatRooms.forEach((chatRoom) => {
-        chatRoomMembers.push(chatRoom.members[1]);
-      });
-      chatRoomMembers.push(userId);
-      const foundUsers = await User.find({
-        _id: { $nin: chatRoomMembers },
-      }).sort({ username: 1 });
-      if (foundUsers) {
-        const users = foundUsers.map((user) => {
-          return {
-            _id: user._id,
-            email: user.email,
-            username: user.username,
-            profilePhotoAddress: user.profilePhoto?.fileAddress,
-          };
+      const user = await User.findOne({ _id: userId });
+      if (user) {
+        const users = await User.find({
+          _id: { $nin: [...user.friends, user._id.toString()] },
         });
+
+        const usersData = await Promise.all(
+          users.map(async (user) => {
+            const friendRequest = await Friend_Request.findOne({
+              request_to: user._id.toString(),
+              request_by: userId,
+            });
+
+            return {
+              _id: user._id.toString(),
+              username: user.username,
+              profilePhotoAddress: user.profilePhoto?.fileAddress,
+              isFriendRequest: !!friendRequest,
+            };
+          })
+        );
         res.status(200).json({
           status: true,
-          message: users,
+          message: usersData,
         });
       } else {
-        res.status(404).json({
-          status: false,
-          message: "user not found",
-        });
+        res.send(404).json({ status: false, message: "user not found." });
       }
     } catch (err) {
       res.status(500).json({
         status: "fail",
-        message: `error has occured ${err}`,
+        message: `error has occurred ${err}`,
       });
     }
   },
@@ -83,60 +84,71 @@ const userController = {
     const regExStr1 = new RegExp(`^${userNametoFind}`, "i");
     const regExStr2 = new RegExp(`${userNametoFind}`, "i");
 
-    const chatrooms = await ChatRoom.find({ members: { $in: [senderId] } });
-
-    const membersId = chatrooms.map(
-      (chatroom) =>
-        chatroom.members.filter((memberId) => memberId !== senderId)[0]
-    );
-
     try {
-      const usersWhoseNameStartsWith = await User.find({
-        $and: [
-          { username: { $regex: regExStr1 } },
-          { _id: { $nin: [...membersId, senderId] } },
-        ],
-      });
+      const userSender = await User.findById(senderId);
+      if (userSender) {
+        const usersWhoseNameStartsWith = await User.find({
+          $and: [
+            { username: { $regex: regExStr1 } },
+            { _id: { $nin: [...userSender.friends, senderId] } },
+          ],
+        });
 
-      const usersWhoseNameContaines = await User.find({
-        $and: [
-          { username: { $regex: regExStr2 } },
-          { _id: { $nin: [...chatrooms, senderId] } },
-        ],
-      });
+        const usersWhoseNameContaines = await User.find({
+          $and: [
+            { username: { $regex: regExStr2 } },
+            { _id: { $nin: [...userSender.friends, senderId] } },
+          ],
+        });
 
-      const foundUsersWithDuplicates = [
-        ...usersWhoseNameStartsWith,
-        ...usersWhoseNameContaines,
-      ];
+        const foundUsersWithDuplicates = [
+          ...usersWhoseNameStartsWith,
+          ...usersWhoseNameContaines,
+        ];
 
-      const foundUsers = [
-        ...new Set(foundUsersWithDuplicates.map((e) => JSON.stringify(e))),
-      ].map((e) => JSON.parse(e));
+        const foundUsers = [
+          ...new Set(foundUsersWithDuplicates.map((e) => JSON.stringify(e))),
+        ].map((e) => JSON.parse(e));
 
-      const filteredUsersWithNull = await Promise.all(
-        foundUsers.map(async (user) => {
-          const chatRoom = await ChatRoom.findOne({
-            members: { $all: [senderId, user._id] },
+        const filteredUsersWithNull = await Promise.all(
+          foundUsers.map(async (user) => {
+            const chatRoom = await ChatRoom.findOne({
+              members: { $all: [senderId, user._id] },
+            });
+            return !chatRoom ? user : null;
+          })
+        );
+
+        const result = filteredUsersWithNull.filter((user) => !!user);
+
+        if (result) {
+          const users = await Promise.all(
+            result.map(async (user) => {
+              const friendRequest = await Friend_Request.findOne({
+                request_to: user._id.toString(),
+                request_by: senderId,
+              });
+
+              return {
+                _id: user._id,
+                username: user.username,
+                profilePhotoAddress: user.profilePhoto?.fileAddress,
+                isFriendRequest: !!friendRequest,
+              };
+            })
+          );
+          console.log(users);
+
+          res.status(200).json({
+            status: true,
+            message: users,
           });
-          return !chatRoom ? user : null;
-        })
-      );
-      const result = filteredUsersWithNull.filter((user) => !!user);
-
-      if (result) {
-        const users = result.map((user) => {
-          return {
-            _id: user._id,
-            email: user.email,
-            username: user.username,
-            profilePhotoAddress: user.profilePhoto?.fileAddress,
-          };
-        });
-        res.status(200).json({
-          status: true,
-          message: users,
-        });
+        } else {
+          res.status(404).json({
+            status: false,
+            message: "user not found",
+          });
+        }
       } else {
         res.status(404).json({
           status: false,

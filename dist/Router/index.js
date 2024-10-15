@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const loginRouter_1 = __importDefault(require("./loginRouter"));
+const registerRouter_1 = __importDefault(require("./registerRouter"));
+const messageRouter_1 = __importDefault(require("./messageRouter"));
+const chatRoomRouter_1 = __importDefault(require("./chatRoomRouter"));
+const userRouter_1 = __importDefault(require("./userRouter"));
+const authenticateRouter_1 = __importDefault(require("./authenticateRouter"));
+const friendRequest_routes_1 = __importDefault(require("./friendRequest.routes"));
+const express_1 = require("express");
+const router = (0, express_1.Router)();
+router.use("/user", userRouter_1.default);
+router.use("/login", loginRouter_1.default);
+router.use("/register", registerRouter_1.default);
+router.use("/auth", authenticateRouter_1.default);
+router.use("/chatroom", chatRoomRouter_1.default);
+router.use("/message", messageRouter_1.default);
+router.use("/friend-request", friendRequest_routes_1.default);
+exports.default = router;
