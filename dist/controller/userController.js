@@ -33,9 +33,11 @@ const userController = {
                 res.status(200).json({
                     status: true,
                     data: {
-                        name: user.username,
-                        profilePhoto: (_a = user.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
+                        _id: user._id.toString(),
+                        username: user.username,
                         email: user.email,
+                        friends: user.friends,
+                        profilePhotoAddress: (_a = user.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
                         about: user.about,
                     },
                 });
@@ -75,6 +77,41 @@ const userController = {
                         isFriendRequest: !!friendRequest,
                     };
                 })));
+                res.status(200).json({
+                    status: true,
+                    message: usersData,
+                });
+            }
+            else {
+                res.send(404).json({ status: false, message: "user not found." });
+            }
+        }
+        catch (err) {
+            res.status(500).json({
+                status: "fail",
+                message: `error has occurred ${err}`,
+            });
+        }
+    }),
+    getFriends: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { userId } = req.params;
+        try {
+            const user = yield userModel_1.default.findOne({ _id: userId });
+            if (user) {
+                const friends = yield userModel_1.default.find({
+                    _id: { $in: user.friends },
+                });
+                const usersData = friends.map((friend) => {
+                    var _a;
+                    return {
+                        _id: friend._id.toString(),
+                        username: friend.username,
+                        email: friend.email,
+                        friends: friend.friends,
+                        profilePhotoAddress: (_a = friend.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
+                        about: friend.about,
+                    };
+                });
                 res.status(200).json({
                     status: true,
                     message: usersData,
@@ -165,6 +202,78 @@ const userController = {
             });
         }
     }),
+    getFriendsByName: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const { friendNametoFind, senderId } = req.body;
+        const regExStr1 = new RegExp(`^${friendNametoFind}`, "i");
+        const regExStr2 = new RegExp(`${friendNametoFind}`, "i");
+        try {
+            const userSender = yield userModel_1.default.findById(senderId);
+            if (userSender) {
+                const friendWhoseNameStartsWith = yield userModel_1.default.find({
+                    $and: [
+                        { username: { $regex: regExStr1 } },
+                        { _id: { $in: userSender.friends } },
+                    ],
+                });
+                const friendWhoseNameContaines = yield userModel_1.default.find({
+                    $and: [
+                        { username: { $regex: regExStr2 } },
+                        { _id: { $in: userSender.friends } },
+                    ],
+                });
+                const foundUsersWithDuplicates = [
+                    ...friendWhoseNameStartsWith,
+                    ...friendWhoseNameContaines,
+                ];
+                const foundFriends = [
+                    ...new Set(foundUsersWithDuplicates.map((e) => JSON.stringify(e))),
+                ].map((e) => JSON.parse(e));
+                const filteredFriendsWithNull = yield Promise.all(foundFriends.map((friend) => __awaiter(void 0, void 0, void 0, function* () {
+                    const chatRoom = yield chatRoomModel_1.default.findOne({
+                        members: { $all: [senderId, friend._id] },
+                    });
+                    return !chatRoom ? friend : null;
+                })));
+                const result = filteredFriendsWithNull.filter((friend) => !!friend);
+                if (result) {
+                    const friends = result.map((friend) => {
+                        var _a;
+                        return {
+                            _id: friend._id.toString(),
+                            username: friend.username,
+                            email: friend.email,
+                            friends: friend.friends,
+                            profilePhotoAddress: (_a = friend.profilePhoto) === null || _a === void 0 ? void 0 : _a.fileAddress,
+                            about: friend.about,
+                        };
+                    });
+                    console.log(friends);
+                    res.status(200).json({
+                        status: true,
+                        message: friends,
+                    });
+                }
+                else {
+                    res.status(404).json({
+                        status: false,
+                        message: "friend not found",
+                    });
+                }
+            }
+            else {
+                res.status(404).json({
+                    status: false,
+                    message: "friend not found",
+                });
+            }
+        }
+        catch (err) {
+            res.status(500).json({
+                status: "fail",
+                message: `error has occurred. ${err}`,
+            });
+        }
+    }),
     updateUser: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { userId, username, email, password, about } = req.body;
         const userProfileImage = req.file;
@@ -199,5 +308,21 @@ const userController = {
             message: "User Updated",
         });
     }),
+    removeFriend: function (req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { userId, friendId, chatroomId } = req.body;
+            const user = yield userModel_1.default.findById(userId);
+            const userFriends = user === null || user === void 0 ? void 0 : user.friends.filter((friend_id) => friend_id !== friendId);
+            yield userModel_1.default.findByIdAndUpdate(user === null || user === void 0 ? void 0 : user._id, { friends: userFriends });
+            const friend = yield userModel_1.default.findById(friendId);
+            const friends = user === null || user === void 0 ? void 0 : user.friends.filter((friend_id) => friend_id !== userId);
+            yield userModel_1.default.findByIdAndUpdate(friend === null || friend === void 0 ? void 0 : friend._id, { friends: friends });
+            yield chatRoomModel_1.default.findByIdAndDelete(chatroomId);
+            res.status(200).json({
+                status: true,
+                message: `user has been successfully removed.`,
+            });
+        });
+    },
 };
 exports.default = userController;

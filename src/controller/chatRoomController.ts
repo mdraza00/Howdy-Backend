@@ -99,19 +99,20 @@ export default {
       const usersData = users.map((user) => {
         return {
           _id: user._id.toString(),
-          email: user.email,
           username: user.username,
+          email: user.email,
+          friends: user.friends,
           profilePhotoAddress: user.profilePhoto?.fileAddress,
         };
       });
       res.status(200).json({
         status: true,
-        message: usersData,
+        data: usersData,
       });
     } catch (err) {
       res.status(500).json({
         status: false,
-        message: "failed. err = " + err,
+        data: "failed. err = " + err,
       });
     }
   },

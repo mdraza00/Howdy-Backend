@@ -25,10 +25,25 @@ userRouter.get(
   authenticateUser.authUserMiddleware,
   userController.getUsers
 );
+userRouter.get(
+  "/get-friends/:userId",
+  authenticateUser.authUserMiddleware,
+  userController.getFriends
+);
 userRouter.post(
   "/getUsers",
   authenticateUser.authUserMiddleware,
   userController.getUsersByName
+);
+userRouter.post(
+  "/getFriendsByName",
+  authenticateUser.authUserMiddleware,
+  userController.getFriendsByName
+);
+userRouter.patch(
+  "/remove-friend",
+  authenticateUser.authUserMiddleware,
+  userController.removeFriend
 );
 userRouter.post(
   "/update",
