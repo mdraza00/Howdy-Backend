@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chatRoomModel_1 = __importDefault(require("../model/chatRoomModel"));
 const messageModel_1 = __importDefault(require("../model/messageModel"));
 const userModel_1 = __importDefault(require("../model/userModel"));
+const chatroomType_1 = require("../enum/chatroomType");
 exports.default = {
     createOrGetChatRoom: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { senderId, recipientId } = req.body;
@@ -37,6 +38,33 @@ exports.default = {
             });
         }
     }),
+    createGroup: function (req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { members, chatroomName, groupDescription } = req.body;
+            const chatroomProfilePhoto = req.file;
+            const groupMembers = members.split("__");
+            const imageAddress = chatroomProfilePhoto
+                ? (chatroomProfilePhoto === null || chatroomProfilePhoto === void 0 ? void 0 : chatroomProfilePhoto.destination.slice(6)) +
+                    "/" +
+                    (chatroomProfilePhoto === null || chatroomProfilePhoto === void 0 ? void 0 : chatroomProfilePhoto.filename)
+                : "";
+            const group = yield chatRoomModel_1.default.create({
+                chatroomType: chatroomType_1.CHATROOM_TYPE.GROUP,
+                members: groupMembers,
+                chatroomProfilePhoto: imageAddress,
+                groupDescription: groupDescription,
+                chatroomName: chatroomName,
+                lastMessage: "",
+                lastMessageVisibleTo: groupMembers,
+                lastMessageDate: "",
+                about: "",
+            });
+            res.status(200).json({
+                status: true,
+                message: group._id.toString(),
+            });
+        });
+    },
     getChatRooms: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { currentUserId } = req.body;
         try {
@@ -44,6 +72,7 @@ exports.default = {
                 members: { $in: [currentUserId] },
             });
             if (chatRooms) {
+                console.log(chatRooms);
                 res.status(200).json({
                     status: true,
                     data: chatRooms,

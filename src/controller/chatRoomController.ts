@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import ChatRoom from "../model/chatRoomModel";
 import Message from "../model/messageModel";
 import User from "../model/userModel";
+import { CHATROOM_TYPE } from "../enum/chatroomType";
+
 export default {
   createOrGetChatRoom: async (req: Request, res: Response) => {
     const { senderId, recipientId } = req.body;
@@ -23,6 +25,34 @@ export default {
       });
     }
   },
+  createGroup: async function (req: Request, res: Response) {
+    const { members, chatroomName, groupDescription } = req.body;
+    const chatroomProfilePhoto = req.file;
+
+    const groupMembers = members.split("__");
+    const imageAddress = chatroomProfilePhoto
+      ? chatroomProfilePhoto?.destination.slice(6) +
+        "/" +
+        chatroomProfilePhoto?.filename
+      : "";
+
+    const group = await ChatRoom.create({
+      chatroomType: CHATROOM_TYPE.GROUP,
+      members: groupMembers,
+      chatroomProfilePhoto: imageAddress,
+      groupDescription: groupDescription,
+      chatroomName: chatroomName,
+      lastMessage: "",
+      lastMessageVisibleTo: groupMembers,
+      lastMessageDate: "",
+      about: "",
+    });
+
+    res.status(200).json({
+      status: true,
+      message: group._id.toString(),
+    });
+  },
   getChatRooms: async (req: Request, res: Response) => {
     const { currentUserId } = req.body;
     try {
@@ -31,6 +61,7 @@ export default {
       });
 
       if (chatRooms) {
+        console.log(chatRooms);
         res.status(200).json({
           status: true,
           data: chatRooms,

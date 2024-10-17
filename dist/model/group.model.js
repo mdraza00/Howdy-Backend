@@ -28,6 +28,7 @@ const Group_Schema = new mongoose_1.Schema({
     members: [mongoose_1.default.Schema.Types.ObjectId],
     groupName: { type: String, default: "group name" },
     groupProfilePhoto: { type: String },
+    groupDescription: { type: String },
 });
 const Group_Model = (0, mongoose_1.model)("Group", Group_Schema);
 exports.default = Group_Model;

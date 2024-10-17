@@ -1,12 +1,31 @@
-import { NextFunction, Request, Response, Router } from "express";
+import multer from "multer";
+import { Router } from "express";
 import chatRoomController from "../controller/chatRoomController";
 import authenticateUser from "../controller/authenticateUser";
 const chatRoomRouter = Router();
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      return cb(null, "public/uploads/group-profile-picture");
+    },
+    filename: (req, file, cb) => {
+      return cb(null, `${Date.now()}--${file.originalname}`);
+    },
+  }),
+});
 
 chatRoomRouter.post(
   "/createRoom",
   authenticateUser.authUserMiddleware,
   chatRoomController.createOrGetChatRoom
+);
+
+chatRoomRouter.post(
+  "/create-group-chat",
+  authenticateUser.authUserMiddleware,
+  upload.single("group-profile-picture"),
+  chatRoomController.createGroup
 );
 
 chatRoomRouter.post(
